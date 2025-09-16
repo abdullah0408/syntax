@@ -4,11 +4,18 @@ import {
   createAgent,
   createTool,
   createNetwork,
+  type Tool,
 } from "@inngest/agent-kit";
 import { Sandbox } from "@e2b/code-interpreter";
 import { agentLastResponseContent, getSandbox } from "./utils";
 import { PROMPT } from "@/prompt";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+
+interface AgentState {
+  summary: string;
+  files: { [path: string]: string };
+}
 
 export const generateCode = inngest.createFunction(
   { id: "generate-code" },
@@ -18,7 +25,7 @@ export const generateCode = inngest.createFunction(
       const sandbox = await Sandbox.create("syntax-nextjs-test-2");
       return sandbox.sandboxId;
     });
-    const codingAgent = createAgent({
+    const codingAgent = createAgent<AgentState>({
       name: "coding-agent",
       system: PROMPT,
       description: "An AI expert coding agent that can write and edit code.",
@@ -71,7 +78,10 @@ export const generateCode = inngest.createFunction(
               })
             ),
           }),
-          handler: async ({ files }, { step, network }) => {
+          handler: async (
+            { files },
+            { step, network }: Tool.Options<AgentState>
+          ) => {
             const newFiles = await step?.run(
               "create-or-update-file",
               async () => {
@@ -136,7 +146,7 @@ export const generateCode = inngest.createFunction(
       },
     });
 
-    const network = createNetwork({
+    const network = createNetwork<AgentState>({
       name: "coding-agent-network",
       agents: [codingAgent],
       maxIter: 15,
@@ -151,11 +161,46 @@ export const generateCode = inngest.createFunction(
 
     const result = await network.run(event.data.value);
 
+    const isError =
+      !result.state.data.summary ||
+      Object.keys(result.state.data.files || {}).length === 0;
+
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await getSandbox(sandboxId);
       const host = sandbox.getHost(3000);
 
       return `https://${host}`;
+    });
+
+    await step.run("save-result", async () => {
+      if (isError) {
+        return await prisma.message.create({
+          data: {
+            projectId: event.data.projectId,
+            content: "Something went wrong, please try again.",
+            role: "ASSISTANT",
+            type: "ERROR",
+          },
+        });
+      }
+
+      return await prisma.message.create({
+        data: {
+          projectId: event.data.projectId,
+          content:
+            result.state.data.summary ||
+            "Something went wrong, message is missing.",
+          role: "ASSISTANT",
+          type: "RESULT",
+          fragments: {
+            create: {
+              sandboxUrl,
+              title: "Fragment",
+              files: result.state.data.files,
+            },
+          },
+        },
+      });
     });
 
     return {

@@ -5,20 +5,31 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [value, setValue] = React.useState("");
 
+  const router = useRouter();
+
   const trpc = useTRPC();
-  const generateCode = useMutation(trpc.generateCode.mutationOptions());
+  const createProject = useMutation(
+    trpc.projects.create.mutationOptions({
+      onError: (error) => toast.error(error.message),
+      onSuccess: (data) => {
+        router.push(`/projects/${data.id}`);
+      },
+    })
+  );
   return (
     <div>
       <Input value={value} onChange={(e) => setValue(e.target.value)} />
       <Button
-        disabled={!value || generateCode.isPending}
-        onClick={() => generateCode.mutate({ value })}
+        disabled={!value || createProject.isPending}
+        onClick={() => createProject.mutate({ value })}
       >
-        Generate Code
+        Submit
       </Button>
     </div>
   );
