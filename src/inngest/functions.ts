@@ -192,7 +192,7 @@ export const generateCode = inngest.createFunction(
             "Something went wrong, message is missing.",
           role: "ASSISTANT",
           type: "RESULT",
-          fragments: {
+          fragment: {
             create: {
               sandboxUrl,
               title: "Fragment",
