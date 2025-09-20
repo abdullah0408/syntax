@@ -14,6 +14,9 @@ import { Form, FormField } from "@/components/ui/form";
 import TextareaAutosize from "react-textarea-autosize";
 import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
+import { useClerk } from "@clerk/nextjs";
+import { useCurrentTheme } from "@/hooks/use-current-theme";
+import { dark } from "@clerk/themes";
 
 const formSchema = z.object({
   value: z
@@ -25,6 +28,8 @@ const formSchema = z.object({
 const ProjectForm = () => {
   const router = useRouter();
   const [isFocused, setIsFocused] = useState(false);
+  const clerk = useClerk();
+  const currentTheme = useCurrentTheme();
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -51,8 +56,19 @@ const ProjectForm = () => {
         // TODO: Revalidate usage status
       },
       onError: (error) => {
-        // TODO: Redirect to pricing page if 402 or specific error
         toast.error(error.message);
+        if (error.data?.code === "UNAUTHORIZED") {
+          clerk.openSignIn({
+            appearance: {
+              baseTheme: currentTheme === "dark" ? dark : undefined,
+              elements: {
+                cardBox: "!border !shadow-none !rounded-lg",
+              },
+            },
+          });
+          return;
+        }
+        // TODO: Redirect to pricing page if 402 or specific error
       },
     })
   );
