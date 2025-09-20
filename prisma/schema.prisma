@@ -47,8 +47,9 @@ model Fragment {
 }
 
 model Project {
-  id   String @id @default(cuid())
-  name String
+  id     String @id @default(cuid())
+  name   String
+  userId String
 
   messages Message[]
 
