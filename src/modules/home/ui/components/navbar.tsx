@@ -5,12 +5,15 @@ import UserControl from "@/components/user-control";
 import { useScroll } from "@/hooks/use-scroll";
 import { cn } from "@/lib/utils";
 import { SignedOut, SignInButton, SignUpButton, SignedIn } from "@clerk/nextjs";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
 const Navbar = () => {
   const isScrolled = useScroll();
+  const { resolvedTheme, setTheme } = useTheme();
 
   return (
     <nav
@@ -37,7 +40,22 @@ const Navbar = () => {
           </div>
         </SignedOut>
         <SignedIn>
-          <UserControl showName />
+          <div className="flex items-center gap-2">
+            <UserControl showName />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() =>
+                resolvedTheme === "dark" ? setTheme("light") : setTheme("dark")
+              }
+            >
+              {resolvedTheme === "dark" ? (
+                <Sun className="size-5" />
+              ) : (
+                <Moon className="size-5" />
+              )}
+            </Button>
+          </div>
         </SignedIn>
       </div>
     </nav>
