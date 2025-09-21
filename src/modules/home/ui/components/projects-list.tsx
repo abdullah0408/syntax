@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
 
 const ProjectsList = () => {
   const trpc = useTRPC();
@@ -35,14 +36,13 @@ const ProjectsList = () => {
           >
             <Link href={`/projects/${project.id}`}>
               <div className="flex items-center gap-x-4">
-                {/* <Image
-                  src=""
+                <Image
+                  src="/logo.png"
                   alt="Project Icon"
                   width={32}
                   height={32}
                   className="object-contain"
-                /> */}
-                {/* TODO */}
+                />
                 <div className="flex flex-col">
                   <h3 className="truncate font-medium">{project.name}</h3>
                   <p className="text-sm text-muted-foreground">
