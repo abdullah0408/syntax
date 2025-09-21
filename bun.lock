@@ -38,6 +38,7 @@
         "rate-limiter-flexible": "^7.3.2",
         "react": "19.1.0",
         "react-dom": "19.1.0",
+        "react-error-boundary": "^6.0.0",
         "react-hook-form": "^7.62.0",
         "react-resizable-panels": "^3.0.6",
         "react-textarea-autosize": "^8.5.9",
@@ -1204,6 +1205,8 @@
     "react": ["react@19.1.0", "", {}, ""],
 
     "react-dom": ["react-dom@19.1.0", "", { "dependencies": { "scheduler": "^0.26.0" }, "peerDependencies": { "react": "^19.1.0" } }, ""],
+
+    "react-error-boundary": ["react-error-boundary@6.0.0", "", { "dependencies": { "@babel/runtime": "^7.12.5" }, "peerDependencies": { "react": ">=16.13.1" } }, "sha512-gdlJjD7NWr0IfkPlaREN2d9uUZUlksrfOx7SX62VRerwXbMY6ftGCIZua1VG1aXFNOimhISsTq+Owp725b9SiA=="],
 
     "react-hook-form": ["react-hook-form@7.62.0", "", { "peerDependencies": { "react": "^16.8.0 || ^17 || ^18 || ^19" } }, "sha512-7KWFejc98xqG/F4bAxpL41NB3o1nnvQO1RWZT3TqRZYL8RryQETGfEdVnJN2fy1crCiBLLjkRBVK05j24FxJGA=="],
 

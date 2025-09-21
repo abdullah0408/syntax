@@ -30,39 +30,56 @@ export const generateCode = inngest.createFunction(
   async ({ event, step }) => {
     const sandboxId = await step.run("get-sandbox-id", async () => {
       const sandbox = await Sandbox.create("syntax-nextjs-test-2");
+      await sandbox.setTimeout(60_000 * 10);
       return sandbox.sandboxId;
     });
 
     const previousMessages = await step.run(
       "get-previous-messages",
       async () => {
-        const formattedMessages: Message[] = [];
-
         const messages = await prisma.message.findMany({
-          where: {
-            projectId: event.data.projectId,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-          include: {
-            fragment: {
-              select: { files: true },
-            },
+          where: { projectId: event.data.projectId },
+          orderBy: { createdAt: "desc" },
+          take: 7,
+          select: {
+            id: true,
+            content: true,
+            role: true,
           },
         });
 
-        for (const message of messages) {
-          formattedMessages.push({
-            type: "text",
-            role: message.role === "ASSISTANT" ? "assistant" : "user",
-            content: `${message.content} \n\n ${
-              message.fragment?.files
-                ? JSON.stringify(message.fragment.files)
-                : ""
-            } \n\n\n
-            ${ADDON_PROMPT}`,
+        const orderedMessages = messages.reverse();
+
+        const formattedMessages: Message[] = [
+          ...orderedMessages.map(
+            (msg) =>
+              ({
+                type: "text",
+                role: msg.role === "ASSISTANT" ? "assistant" : "user",
+                content: msg.content,
+              } as Message)
+          ),
+        ];
+
+        if (orderedMessages.length >= 2) {
+          const secondLastMessage = orderedMessages[orderedMessages.length - 2];
+          const fragment = await prisma.fragment.findUnique({
+            where: { messageId: secondLastMessage.id },
+            select: { files: true },
           });
+
+          if (fragment?.files) {
+            const lastIndex = formattedMessages.length - 1;
+            const lastMessage = formattedMessages[lastIndex];
+            if (
+              lastMessage.type === "text" &&
+              typeof lastMessage.content === "string"
+            ) {
+              lastMessage.content += `\n\n${JSON.stringify(
+                fragment.files
+              )}\n\n\n${ADDON_PROMPT}`;
+            }
+          }
         }
 
         return formattedMessages;

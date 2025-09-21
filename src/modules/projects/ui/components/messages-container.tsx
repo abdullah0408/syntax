@@ -19,10 +19,33 @@ const MessagesContainer = ({
 }: MessagesContainerProps) => {
   const trpc = useTRPC();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: messages } = useSuspenseQuery(
-    trpc.messages.getMany.queryOptions({ projectId }, { refetchInterval: 5000 }) // TODO: Temporary refetch for new messages
+  const { data: messages, refetch } = useSuspenseQuery(
+    trpc.messages.getMany.queryOptions({ projectId })
   );
+
+  const lastMessage = messages[messages.length - 1];
+  const isLastMessageFromUser = lastMessage?.role === "USER";
+
+  useEffect(() => {
+    if (isLastMessageFromUser) {
+      intervalRef.current = setInterval(() => {
+        void refetch().then((result) => {
+          const lastMessage = result.data?.[result.data.length - 1];
+          if (lastMessage?.role === "ASSISTANT" && intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
+        });
+      }, 2000);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isLastMessageFromUser, refetch]);
 
   useEffect(() => {
     const lastAssistantMessageWithFragment = messages.findLast(
@@ -37,9 +60,6 @@ const MessagesContainer = ({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
-
-  const lastMessage = messages[messages.length - 1];
-  const isLastMessageFromUser = lastMessage?.role === "USER";
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
