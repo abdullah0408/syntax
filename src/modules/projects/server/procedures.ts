@@ -43,13 +43,7 @@ export const projectsRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         const result = await getUsageStatus();
-        if (!result) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Something went wrong",
-          });
-        }
-        if (result.remainingPoints < 1) {
+        if (result && result.remainingPoints < 1) {
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",
             message: "You have run out of credits.",
