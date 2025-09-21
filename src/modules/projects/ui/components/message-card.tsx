@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ChevronRightIcon, Code2Icon } from "lucide-react";
+import Image from "next/image";
 
 interface MessageCardProps {
   content: string;
@@ -86,8 +87,13 @@ const AssistantMessage = ({
       )}
     >
       <div className="flex items-center gap-2 pl-2 mb-2">
-        {/* TODO: Add logo */}
-        {/* <Image src="" alt="Syntax Logo" width={18} height={18} className="shrink-0" /> */}
+        <Image
+          src="/logo.png"
+          alt="Syntax Logo"
+          width={18}
+          height={18}
+          className="shrink-0"
+        />
         <span className="text-sm font-medium">Syntax</span>
         <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
           {format(new Date(createdAt), "HH:mm, 'on' MMM dd, yyyy")}
