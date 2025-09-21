@@ -4,12 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { ArrowUpIcon, Loader2Icon } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
 import TextareaAutosize from "react-textarea-autosize";
+import Usage from "./usage";
+import { useRouter } from "next/navigation";
 
 interface MessageFormProps {
   projectId: string;
@@ -24,9 +26,12 @@ const formSchema = z.object({
 
 const MessageForm = ({ projectId }: MessageFormProps) => {
   const [isFocused, setIsFocused] = useState(false);
+  const router = useRouter();
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+
+  const { data: usage } = useQuery(trpc.usage.status.queryOptions());
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,18 +47,21 @@ const MessageForm = ({ projectId }: MessageFormProps) => {
         queryClient.invalidateQueries(
           trpc.messages.getMany.queryOptions({ projectId })
         );
-        // TODO: Revalidate usage status
+        queryClient.invalidateQueries(trpc.usage.status.queryOptions());
       },
       onError: (error) => {
-        // TODO: Redirect to pricing page if 402 or specific error
         toast.error(error.message);
+
+        if (error.data?.code === "TOO_MANY_REQUESTS") {
+          router.push("/pricing");
+        }
       },
     })
   );
   const isPending = createMessage.isPending;
   const isButtonDisabled = isPending || !form.formState.isValid;
 
-  const showUsage = false; // TODO: Replace with actual usage logic
+  const showUsage = !!usage;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     await createMessage.mutateAsync({
@@ -63,6 +71,12 @@ const MessageForm = ({ projectId }: MessageFormProps) => {
   };
   return (
     <Form {...form}>
+      {showUsage && (
+        <Usage
+          credits={usage.remainingPoints}
+          msBeforeNext={usage.msBeforeNext}
+        />
+      )}
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className={cn(

@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/prisma";
+import { consumeCredits, getUsageStatus } from "@/lib/usage";
 import { protectedProcedure, createTRPCRouter } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -42,6 +43,46 @@ export const messagesRouter = createTRPCRouter({
           code: "NOT_FOUND",
           message: "Project not found",
         });
+      }
+
+      try {
+        const result = await getUsageStatus();
+        if (!result) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Something went wrong",
+          });
+        }
+        if (result.remainingPoints < 1) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "You have run out of credits.",
+          });
+        }
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Something went wrong",
+        });
+      }
+
+      try {
+        await consumeCredits();
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Something went wrong",
+          });
+        } else {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "You have run out of credits.",
+          });
+        }
       }
 
       const newMessage = await prisma.message.create({
